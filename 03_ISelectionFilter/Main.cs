@@ -23,9 +23,13 @@ namespace _03_ISelectionFilter
             UIDocument uiDoc = uiApp.ActiveUIDocument;
             Document doc = uiDoc.Document;
 
-            ElementSelectionFilter filter = new ElementSelectionFilter(elem => elem.Category.Id == new ElementId(BuiltInCategory.OST_Walls));
+            // Create a selection filter object
+            LinkableSelectionFilter filter = new LinkableSelectionFilter(doc,e => e.Category.Id.Value == (int)BuiltInCategory.OST_Walls);
 
-            IList<Reference> reference = uiDoc.Selection.PickObjects(ObjectType.Element, filter, "Select a wall or walls");
+            // Selection refernces
+            IList<Reference> references = uiDoc.Selection.PickObjects(ObjectType.PointOnElement, filter, "Please select walls");
+
+            TaskDialog.Show("Count of selected elements",references.Count.ToString());
 
             return Autodesk.Revit.UI.Result.Succeeded;
         }
