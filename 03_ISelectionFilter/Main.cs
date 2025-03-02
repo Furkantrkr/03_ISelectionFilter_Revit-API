@@ -25,7 +25,7 @@ namespace _03_ISelectionFilter
 
             try
             {
-                List<Element> selectedElements = uiDoc.PickElements(e => e.Category.Id.Value == (int)BuiltInCategory.OST_Walls, PickElementsOptionFactory.CreateCurrentDocumentOption()); 
+                List<Element> selectedElements = uiDoc.PickElements(e => e is FamilyInstance, PickElementsOptionFactory.CreateCurrentDocumentOption()); 
                 TaskDialog.Show("Message", $"Selected {selectedElements.Count} elements");
             }
             catch (OperationCanceledException)
