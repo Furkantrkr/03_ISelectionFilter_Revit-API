@@ -12,32 +12,28 @@ namespace _03_ISelectionFilter.Extensions.SelectionExtensions
     public abstract class BaseSelectionFilter : ISelectionFilter
     {
         protected readonly Func<Element, bool> ValidateElement;
-        protected readonly Func<Reference, bool> ValidateReference;
 
         protected BaseSelectionFilter(Func<Element, bool> validateElement)
         {
             ValidateElement = validateElement;
         }
 
-        protected BaseSelectionFilter(Func<Element, bool> validateElement, Func<Reference, bool> validateReference)
-            : this(validateElement)
-        {
-            ValidateReference = validateReference;
-        }
         public abstract bool AllowElement(Autodesk.Revit.DB.Element elem);
 
         public abstract bool AllowReference(Autodesk.Revit.DB.Reference reference, Autodesk.Revit.DB.XYZ position);
     }
     public class ElementSelectionFilter : BaseSelectionFilter
-
     {
-        public ElementSelectionFilter(Func<Element, bool> validateElement) : base(validateElement)
+        private readonly Func<Reference, bool> _validateReference;
+        public ElementSelectionFilter(Func<Element, bool> validateElement) 
+            : base(validateElement)
         {
         }
         
         public ElementSelectionFilter(Func<Element, bool> validateElement, Func<Reference,bool> validateReference) : base(validateElement)
         {
-        }
+            _validateReference = validateReference;
+    }
 
         public override bool AllowElement(Element elem)
         {
@@ -46,14 +42,15 @@ namespace _03_ISelectionFilter.Extensions.SelectionExtensions
 
         public override bool AllowReference(Reference reference, XYZ position)
         {
-            return ValidateReference?.Invoke(reference) ?? true;
+            return _validateReference?.Invoke(reference) ?? true;
         }
     }
 
     public class LinkableSelectionFilter : BaseSelectionFilter
     {
         private readonly Document _doc;
-        public LinkableSelectionFilter(Document doc, Func<Element, bool> validateElement) : base(validateElement)
+        public LinkableSelectionFilter(Document doc, Func<Element, bool> validateElement) 
+            : base(validateElement)
         {
             _doc = doc;
         }
