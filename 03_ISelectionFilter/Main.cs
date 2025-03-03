@@ -9,6 +9,8 @@ using Autodesk.Revit.UI;
 using Autodesk.Revit.Attributes;
 using Autodesk.Revit.UI.Selection;
 using _03_ISelectionFilter.Extensions.SelectionExtensions;
+using _03_ISelectionFilter.Extensions;
+using System.Windows.Documents;
 
 namespace _03_ISelectionFilter
 {
@@ -25,16 +27,30 @@ namespace _03_ISelectionFilter
 
             try
             {
-                List<Element> selectedElements = uiDoc.PickElements(e => e is FamilyInstance, PickElementsOptionFactory.CreateCurrentDocumentOption()); 
-                TaskDialog.Show("Message", $"Selected {selectedElements.Count} elements");
+                List<Element> selectedElements = uiDoc.PickElements(e => e is FamilyInstance, PickElementsOptionFactory.CreateCurrentDocumentOption());
+                Element firstEl = selectedElements.First();
+                ElementId id = firstEl.Id;
+
+                LocationPoint elLocation = firstEl.Location as LocationPoint;
+                XYZ elLocationPt = elLocation.Point;
+
+                XYZ vector = new XYZ(1,2,0);
+                Line line = vector.VisualizeAsLine(doc, elLocationPt);
+
+                using (Transaction t = new Transaction(doc, "Create Poins"))
+                {
+                    t.Start();
+
+                    ElementTransformUtils.MoveElement(doc, id, vector );
+                    doc.CreateDirectShape(new List<GeometryObject>() { line });
+
+                    t.Commit();
+                }
             }
             catch (OperationCanceledException)
             {
                 TaskDialog.Show("Revit", "Operation canceled");
             }
-
-
-
 
             return Autodesk.Revit.UI.Result.Succeeded;
         }
