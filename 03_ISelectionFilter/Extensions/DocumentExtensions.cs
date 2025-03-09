@@ -13,14 +13,22 @@ namespace _03_ISelectionFilter.Extensions
         /// This method is used to create direct shapes in a document
         /// </summary>
         public static DirectShape CreateDirectShape(
-            this Document doc, List<GeometryObject> geometryObjects, BuiltInCategory builtInCategory = BuiltInCategory.OST_GenericModel)
+            this Document document, List<GeometryObject> geometryObjects, BuiltInCategory builtInCategory = BuiltInCategory.OST_GenericModel)
         {
-
-
-            DirectShape directShape = DirectShape.CreateElement(doc, new ElementId(builtInCategory));
+            DirectShape directShape = DirectShape.CreateElement(document, new ElementId(builtInCategory));
             directShape.SetShape(geometryObjects);
 
             return directShape;
-        } 
+        }
+        public static void Run(
+            this Document document, Action doAction, string transactionName = "Default transaction name")
+        {
+            using (var transaction = new Transaction(document, transactionName))
+            {
+                transaction.Start();
+                doAction.Invoke();
+                transaction.Commit();
+            }
+        }
     }
 }

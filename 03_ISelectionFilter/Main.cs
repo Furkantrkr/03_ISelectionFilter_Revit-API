@@ -6,11 +6,13 @@ using System.Threading.Tasks;
 using Autodesk.Revit.ApplicationServices;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
-using Autodesk.Revit.Attributes;
+using Autodesk.Revit.Attributes;s
 using Autodesk.Revit.UI.Selection;
 using _03_ISelectionFilter.Extensions.SelectionExtensions;
 using _03_ISelectionFilter.Extensions;
 using System.Windows.Documents;
+using _03_ISelectionFilter.GeometryUtils;
+using Microsoft.SqlServer.Server;
 
 namespace _03_ISelectionFilter
 {
@@ -20,31 +22,66 @@ namespace _03_ISelectionFilter
     {
         public Autodesk.Revit.UI.Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
-            UIApplication uiApp = commandData.Application;
-            Application app = uiApp.Application;
-            UIDocument uiDoc = uiApp.ActiveUIDocument;
-            Document doc = uiDoc.Document;
+            UIApplication uiApplication = commandData.Application;
+            Application application = uiApplication.Application;
+            UIDocument uiDocument = uiApplication.ActiveUIDocument;
+            Document document = uiDocument.Document;
+            Element selectedElement = uiDocument.GetSelectedElements().First();
+
+            Options options = new Options();
+
+            //List<Solid> solids = selectedElement.get_Geometry(options)
+            //                                                 .OfType<Solid>()
+            //                                                 .ToList();
+            //TaskDialog.Show("Message", solids.Count.ToString());
+
+            List<Solid> solids = selectedElement.get_Geometry(options)
+                                                           .OfType<GeometryInstance>()
+                                                           .SelectMany(g => g.GetInstanceGeometry())
+                                                           .OfType<Solid>()
+                                                           .Where(s => s.Volume > 0)
+                                                           .ToList();
+
+            //IEnumerable<Element> subElementsOfFamilyInstance = (selectedElement as FamilyInstance).GetSubComponentIds()
+            //                                                                     .Select(id => document.GetElement(id));
+
+
+            //List<Solid> subSolids = subElementsOfFamilyInstance.Select( familyInstance => familyInstance.get_Geometry(options))
+                                              
+            //                                               .OfType<GeometryInstance>()
+            //                                               .SelectMany(g => g.GetInstanceGeometry())
+            //                                               .OfType<Solid>()
+            //                                               .Where(s => s.Volume > 0)
+            //                                               .ToList();
+
+
+
+
+            Solid unionSolid = solids.Aggregate((x,y) => BooleanOperationsUtils.ExecuteBooleanOperation(x,y,BooleanOperationsType.Union));
+
+            TaskDialog.Show("Message", solids.Count.ToString());
+
+
+
 
             try
             {
-                List<Element> selectedElements = uiDoc.PickElements(e => e is FamilyInstance, PickElementsOptionFactory.CreateCurrentDocumentOption());
-                Element firstEl = selectedElements.First();
-                ElementId id = firstEl.Id;
+                //List<Element> selectedElements = uiDocument.PickElements(e => e is FamilyInstance, PickElementsOptionFactory.CreateCurrentDocumentOption());
+                //ICollection<ElementId> elIds = selectedElements.Select(e => e.Id).ToList();
 
-                LocationPoint elLocation = firstEl.Location as LocationPoint;
-                XYZ elLocationPt = elLocation.Point;
 
-                XYZ vector = new XYZ(1,2,0);
-                Line line = vector.VisualizeAsLine(doc, elLocationPt);
 
-                using (Transaction t = new Transaction(doc, "Create Poins"))
+
+                using (Transaction t = new Transaction(document, "Create Points"))
                 {
                     t.Start();
 
-                    ElementTransformUtils.MoveElement(doc, id, vector );
-                    doc.CreateDirectShape(new List<GeometryObject>() { line });
-
-                    t.Commit();
+                    unionSolid.Visualize(document);
+                    foreach (Solid solid in solids)
+                    {
+                        //solid.Visualize(document);   
+                    }
+                    t.Commit(); 
                 }
             }
             catch (OperationCanceledException)
